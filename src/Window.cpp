@@ -9,6 +9,8 @@
 #include "usb2can.h"
 #include <string>
 #include "globals.h"
+#include <sstream>
+#include <iomanip>
 
 Window::Window(int width, int height, const char* title) : width(width), height(height) {
     // Initialize GLFW
@@ -139,25 +141,46 @@ void Window::createSettingsTab() {
     ImGui::EndTabItem();
 }
 
+template< typename T >
+static std::string int_to_hex( T i )
+{
+  std::stringstream stream;
+  stream << "0x" 
+         << std::setfill ('0') << std::setw(2) 
+         << std::hex << i;
+  return stream.str();
+}
+
 void Window::createDatabaseTab() {
-    if (ImGui::BeginTable("Table1", 3)) // Start a table with 3 columns
+    if (ImGui::BeginTable("Table1", 5, ImGuiTableFlags_RowBg)) // Start a table with 3 columns
         {
             // Set up columns
-            ImGui::TableSetupColumn("Column 1");
-            ImGui::TableSetupColumn("Column 2");
-            ImGui::TableSetupColumn("Column 3");
+            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 200);
+            ImGui::TableSetupColumn("Length", ImGuiTableColumnFlags_WidthFixed, 50);
+            ImGui::TableSetupColumn("Sender", ImGuiTableColumnFlags_WidthFixed, 200);
+            ImGui::TableSetupColumn("Signals");
             ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
-            // Add rows
-            for (int row = 0; row < 5; ++row)
-            {
+            for (CAN::MessageDescription message : messageDescriptions) {
                 ImGui::TableNextRow();
-                for (int column = 0; column < 3; ++column)
-                {
-                    ImGui::TableSetColumnIndex(column);
-                    ImGui::Text("Row %d Col %d", row, column);
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", int_to_hex(message.id).c_str());
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%s", message.name.c_str());
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%i", message.length);
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%s", message.sender.c_str());
+                ImGui::TableSetColumnIndex(4);
+                std::string signals = "";
+                for (CAN::SignalDescription& signal : message.signals) {
+                    signals += signal.name + " (" + signal.unit + ")";
+                    if (&signal != &message.signals.back()) signals += ", ";
                 }
+                ImGui::Text("%s", signals.c_str());
             }
+
             ImGui::EndTable(); // End the table
         }
 
@@ -170,14 +193,48 @@ void Window::createMonitorTab() {
 }
 
 void Window::createGraphTab() {
-    if (ImPlot::BeginPlot("Data Plot")) {
-        if (!tData.empty()) { // Ensure there is data to plot
-            ImPlot::SetupAxesLimits(tData.front(), tData.back(), -1.0, 1.0, ImGuiCond_Always);
-            ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
-            ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
-            ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());
+    ImGui::Columns(2, "Columns");
+    ImGui::SetColumnWidth(0, 200);
+
+    // ImGui::BeginTable("CheckboxTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)
+    if (ImGui::BeginTable("CheckboxTable", 2)) {
+        ImGui::TableSetupColumn("Checkbox", ImGuiTableColumnFlags_WidthFixed, 20);
+        ImGui::TableSetupColumn("Text", ImGuiTableColumnFlags_WidthFixed, 200);
+
+        // ImGui::TableHeadersRow(); // Optional: Header row
+
+        for (CAN::MessageDescription& message : messageDescriptions) {
+            ImGui::TableNextRow();
+            
+            // Checkbox Column
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Checkbox(("##checkbox" + std::to_string(message.id)).c_str(), &message.plot);
+
+            // Text Column
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%s", (int_to_hex(message.id) + " " + message.name).c_str());
         }
-        ImPlot::EndPlot();
+
+        ImGui::EndTable();
     }
+
+    ImGui::NextColumn();
+    ImGui::BeginChild("ScrollablePlots", ImVec2(0, 0), true, ImGuiWindowFlags_NoBackground);
+
+    for (CAN::MessageDescription& message : messageDescriptions) {
+        if (message.plot) {
+            if (ImPlot::BeginPlot((int_to_hex(message.id) + " " + message.name).c_str())) {
+                if (!tData.empty()) {
+                    ImPlot::SetupAxesLimits(tData.front(), tData.back(), -1.0, 1.0, ImGuiCond_Always);
+                    ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
+                    ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
+                    ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());
+                }
+                ImPlot::EndPlot();
+            }
+        }
+    }
+    ImGui::EndChild();
+
     ImGui::EndTabItem();
 }

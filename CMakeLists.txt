@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add source files
 set(SOURCES
     src/main.cpp
-    # src/engine.cpp
+    src/CAN.cpp
     src/Window.cpp
     imgui/imgui.cpp
     imgui/imgui_draw.cpp
