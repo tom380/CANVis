@@ -1,6 +1,7 @@
 #pragma once
 
-#include <vector>
+#include <unordered_map>
+#include <deque>
 #include <string>
 #include "CAN.h"
 
@@ -14,4 +15,10 @@ inline long handle = NULL;
 inline const int baudrates[] = {20, 50, 100, 125, 250, 500, 800, 1000};
 inline int baudrate = 500;
 
-inline std::vector<CAN::MessageDescription> messageDescriptions;
+inline std::unordered_map<int, CAN::MessageDescription> messageDescriptions;
+inline CAN::MessageBuffer messageBuffer(1000);
+
+typedef std::vector<std::pair<unsigned long, float>> Plot;
+inline std::vector<Plot> plots;
+
+inline bool isPaused = true;

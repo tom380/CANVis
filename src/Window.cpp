@@ -86,6 +86,7 @@ void Window::createImGui() {
                                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
     ImGui::Begin("CANVis", nullptr, window_flags);
+    float tabBarY = ImGui::GetCursorPosY();
 
     if (ImGui::BeginTabBar("Tabs")) {
         if (ImGui::BeginTabItem("Settings")) createSettingsTab();
@@ -94,6 +95,23 @@ void Window::createImGui() {
         if (ImGui::BeginTabItem("Graph View")) createGraphTab();
 
         ImGui::EndTabBar();
+    }
+
+
+
+    // Get the window content region width
+    float windowWidth = ImGui::GetContentRegionAvail().x;
+    ImGui::SameLine();
+
+    // Get the button size
+    float buttonWidth = ImGui::CalcTextSize(isPaused ? "Record" : "Stop").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    float rightAlignPadding = 10.0f;
+
+    // Align the button to the right
+    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowContentRegionMax().x - buttonWidth - rightAlignPadding, tabBarY));
+
+    if (ImGui::Button(isPaused ? "Record" : "Stop")) {
+        isPaused = !isPaused; // Toggle the pause state
     }
 
     ImGui::End();
@@ -105,7 +123,7 @@ void Window::createSettingsTab() {
     ImGui::Text("Baudrate:");
 
     ImGui::SetNextItemWidth(100);
-    static char deviceID[128] = "";
+    static char deviceID[128] = "AE904396";
     ImGui::InputText("##DeviceID", deviceID, IM_ARRAYSIZE(deviceID));
 
     ImGui::SameLine();
@@ -142,17 +160,17 @@ void Window::createSettingsTab() {
 }
 
 template< typename T >
-static std::string int_to_hex( T i )
+static std::string int_to_hex( T i , const int digits, bool add0x = true)
 {
   std::stringstream stream;
-  stream << "0x" 
-         << std::setfill ('0') << std::setw(2) 
+  if (add0x) stream << "0x";
+  stream << std::setfill ('0') << std::setw(digits) 
          << std::hex << i;
   return stream.str();
 }
 
 void Window::createDatabaseTab() {
-    if (ImGui::BeginTable("Table1", 5, ImGuiTableFlags_RowBg)) // Start a table with 3 columns
+    if (ImGui::BeginTable("Database", 5, ImGuiTableFlags_RowBg)) // Start a table with 3 columns
         {
             // Set up columns
             ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
@@ -162,10 +180,11 @@ void Window::createDatabaseTab() {
             ImGui::TableSetupColumn("Signals");
             ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
-            for (CAN::MessageDescription message : messageDescriptions) {
+            for (auto& pair : messageDescriptions) {
+                CAN::MessageDescription& message = pair.second;
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", int_to_hex(message.id).c_str());
+                ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s", message.name.c_str());
                 ImGui::TableSetColumnIndex(2);
@@ -188,6 +207,59 @@ void Window::createDatabaseTab() {
 }
 
 void Window::createMonitorTab() {
+    if (ImGui::BeginTable("Monitor", 6, ImGuiTableFlags_RowBg)) {
+        // Set up columns
+        ImGui::TableSetupColumn("Timestamp", ImGuiTableColumnFlags_WidthFixed, 100);
+        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Raw Data", ImGuiTableColumnFlags_WidthFixed, 200);
+        ImGui::TableSetupColumn("Data");
+        ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
+
+        // for (CAN::Message& message : messageBuffer.getMessages()) {
+        const std::vector<CAN::Message>& messages = messageBuffer.getMessages();
+        for (auto rit = messages.rbegin(); rit != messages.rend(); rit++) {
+            const CAN::Message& message = *rit;
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%lu", message.timestamp);
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
+
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%lu", message.flags);
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text("%i", message.sizeData);
+
+            ImGui::TableSetColumnIndex(4);
+            std::ostringstream oss;
+            for (size_t i = 0; i < message.rawData.size(); ++i) {
+                oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(message.rawData[i]);
+                if (i < message.rawData.size() - 1) {
+                    oss << " ";
+                }
+            }
+            ImGui::Text("%s", oss.str().c_str());
+            
+            ImGui::TableSetColumnIndex(5);
+            auto it = messageDescriptions.find(message.id);
+            if (it != messageDescriptions.end()) {
+                std::string signals = "";
+                CAN::MessageDescription& description = it->second;
+                for (CAN::SignalDescription& signal : description.signals) {
+                    signals += signal.name + ": " + std::to_string(message.getDecodedValue<double>(signal.name)) + " " + signal.unit;
+                    if (&signal != &description.signals.back()) signals += "\t";
+                }
+                
+                ImGui::Text("%s", signals.c_str());
+            }
+        }
+
+        ImGui::EndTable();
+    }
 
     ImGui::EndTabItem();
 }
@@ -203,7 +275,8 @@ void Window::createGraphTab() {
 
         // ImGui::TableHeadersRow(); // Optional: Header row
 
-        for (CAN::MessageDescription& message : messageDescriptions) {
+        for (auto& pair : messageDescriptions) {
+            CAN::MessageDescription& message = pair.second;
             ImGui::TableNextRow();
             
             // Checkbox Column
@@ -212,7 +285,7 @@ void Window::createGraphTab() {
 
             // Text Column
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%s", (int_to_hex(message.id) + " " + message.name).c_str());
+            ImGui::Text("%s", (int_to_hex(message.id, 2) + " " + message.name).c_str());
         }
 
         ImGui::EndTable();
@@ -221,9 +294,10 @@ void Window::createGraphTab() {
     ImGui::NextColumn();
     ImGui::BeginChild("ScrollablePlots", ImVec2(0, 0), true, ImGuiWindowFlags_NoBackground);
 
-    for (CAN::MessageDescription& message : messageDescriptions) {
-        if (message.plot) {
-            if (ImPlot::BeginPlot((int_to_hex(message.id) + " " + message.name).c_str())) {
+    for (auto& pair : messageDescriptions) {
+        CAN::MessageDescription& messageDescription = pair.second;
+        if (messageDescription.plot) {
+            if (ImPlot::BeginPlot((int_to_hex(messageDescription.id, 2) + " " + messageDescription.name).c_str())) {
                 if (!tData.empty()) {
                     ImPlot::SetupAxesLimits(tData.front(), tData.back(), -1.0, 1.0, ImGuiCond_Always);
                     ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
@@ -235,6 +309,7 @@ void Window::createGraphTab() {
         }
     }
     ImGui::EndChild();
+    ImGui::Columns();
 
     ImGui::EndTabItem();
 }
