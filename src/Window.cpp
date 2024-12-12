@@ -297,9 +297,23 @@ void Window::createGraphTab() {
     for (auto& pair : messageDescriptions) {
         CAN::MessageDescription& messageDescription = pair.second;
         if (messageDescription.plot) {
+            float max = 0;
+            float min = 0;
+            for (float dataPoint : xData) {
+                if (dataPoint > max) max = dataPoint;
+                if (dataPoint < min) min = dataPoint;
+            }
+            for (float dataPoint : yData) {
+                if (dataPoint > max) max = dataPoint;
+                if (dataPoint < min) min = dataPoint;
+            }
+            for (float dataPoint : zData) {
+                if (dataPoint > max) max = dataPoint;
+                if (dataPoint < min) min = dataPoint;
+            }
             if (ImPlot::BeginPlot((int_to_hex(messageDescription.id, 2) + " " + messageDescription.name).c_str())) {
                 if (!tData.empty()) {
-                    ImPlot::SetupAxesLimits(tData.front(), tData.back(), -1.0, 1.0, ImGuiCond_Always);
+                    ImPlot::SetupAxesLimits(tData.front(), tData.back(), min - std::abs(min) * 0.1, max + max *0.1, ImGuiCond_Always);
                     ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
                     ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
                     ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());

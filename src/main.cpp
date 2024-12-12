@@ -51,7 +51,7 @@ int main() {
                     float accy = int16_t((msg.data[3] << 8) | msg.data[2]) / (float)256;
                     float accz = int16_t((msg.data[5] << 8) | msg.data[4]) / (float)256;
 
-                    if (tData.size() >= 100) {
+                    if (tData.size() >= 500) {
                         tData.erase(tData.begin());
                         xData.erase(xData.begin());
                         yData.erase(yData.begin());

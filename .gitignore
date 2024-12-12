@@ -4,3 +4,5 @@ CMakeFiles/
 
 CMakeCache.txt
 imgui.ini
+build.ninja
+cmake_install.cmake
