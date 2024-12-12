@@ -207,58 +207,61 @@ void Window::createDatabaseTab() {
 }
 
 void Window::createMonitorTab() {
-    if (ImGui::BeginTable("Monitor", 6, ImGuiTableFlags_RowBg)) {
-        // Set up columns
-        ImGui::TableSetupColumn("Timestamp", ImGuiTableColumnFlags_WidthFixed, 100);
-        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
-        ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 50);
-        ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
-        ImGui::TableSetupColumn("Raw Data", ImGuiTableColumnFlags_WidthFixed, 200);
-        ImGui::TableSetupColumn("Data");
-        ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
+    if (ImGui::BeginChild("ScrollableTable", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoBackground)) {
+        if (ImGui::BeginTable("Monitor", 6, ImGuiTableFlags_RowBg)) {
+            // Set up columns
+            ImGui::TableSetupColumn("Timestamp", ImGuiTableColumnFlags_WidthFixed, 100);
+            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+            ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 50);
+            ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 50);
+            ImGui::TableSetupColumn("Raw Data", ImGuiTableColumnFlags_WidthFixed, 200);
+            ImGui::TableSetupColumn("Data");
+            ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
-        // for (CAN::Message& message : messageBuffer.getMessages()) {
-        const std::vector<CAN::Message>& messages = messageBuffer.getMessages();
-        for (auto rit = messages.rbegin(); rit != messages.rend(); rit++) {
-            const CAN::Message& message = *rit;
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text("%lu", message.timestamp);
+            // for (CAN::Message& message : messageBuffer.getMessages()) {
+            const std::vector<CAN::Message>& messages = messageBuffer.getMessages();
+            for (auto rit = messages.rbegin(); rit != messages.rend(); rit++) {
+                const CAN::Message& message = *rit;
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%lu", message.timestamp);
 
-            ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
 
-            ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%lu", message.flags);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%lu", message.flags);
 
-            ImGui::TableSetColumnIndex(3);
-            ImGui::Text("%i", message.sizeData);
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%i", message.sizeData);
 
-            ImGui::TableSetColumnIndex(4);
-            std::ostringstream oss;
-            for (size_t i = 0; i < message.rawData.size(); ++i) {
-                oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(message.rawData[i]);
-                if (i < message.rawData.size() - 1) {
-                    oss << " ";
+                ImGui::TableSetColumnIndex(4);
+                std::ostringstream oss;
+                for (size_t i = 0; i < message.rawData.size(); ++i) {
+                    oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(message.rawData[i]);
+                    if (i < message.rawData.size() - 1) {
+                        oss << " ";
+                    }
                 }
-            }
-            ImGui::Text("%s", oss.str().c_str());
-            
-            ImGui::TableSetColumnIndex(5);
-            auto it = messageDescriptions.find(message.id);
-            if (it != messageDescriptions.end()) {
-                std::string signals = "";
-                CAN::MessageDescription& description = it->second;
-                for (CAN::SignalDescription& signal : description.signals) {
-                    signals += signal.name + ": " + std::to_string(message.getDecodedValue<double>(signal.name)) + " " + signal.unit;
-                    if (&signal != &description.signals.back()) signals += "\t";
-                }
+                ImGui::Text("%s", oss.str().c_str());
                 
-                ImGui::Text("%s", signals.c_str());
+                ImGui::TableSetColumnIndex(5);
+                auto it = messageDescriptions.find(message.id);
+                if (it != messageDescriptions.end()) {
+                    std::string signals = "";
+                    CAN::MessageDescription& description = it->second;
+                    for (CAN::SignalDescription& signal : description.signals) {
+                        signals += signal.name + ": " + std::to_string(message.getDecodedValue<double>(signal.name)) + " " + signal.unit;
+                        if (&signal != &description.signals.back()) signals += "\t";
+                    }
+                    
+                    ImGui::Text("%s", signals.c_str());
+                }
             }
-        }
 
-        ImGui::EndTable();
+            ImGui::EndTable();
+        }
+        ImGui::EndChild();
     }
 
     ImGui::EndTabItem();
@@ -312,12 +315,26 @@ void Window::createGraphTab() {
                 if (dataPoint < min) min = dataPoint;
             }
             if (ImPlot::BeginPlot((int_to_hex(messageDescription.id, 2) + " " + messageDescription.name).c_str())) {
-                if (!tData.empty()) {
-                    ImPlot::SetupAxesLimits(tData.front(), tData.back(), min - std::abs(min) * 0.1, max + max *0.1, ImGuiCond_Always);
-                    ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
-                    ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
-                    ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());
+                // if (!tData.empty()) {
+                //     ImPlot::SetupAxesLimits(tData.front(), tData.back(), min - std::abs(min) * 0.1, max + max *0.1, ImGuiCond_Always);
+                //     ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
+                //     ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
+                //     ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());
+                // }
+                std::vector<CAN::Message> messages = messageBuffer.getMessagesByType(messageDescription.id);
+                for (CAN::SignalDescription& signal : messageDescription.signals) {
+                    std::vector<float> time;
+                    std::vector<float> data;
+                    
+                    for (CAN::Message& message : messages) {
+                        time.push_back(message.timestamp);
+                        data.push_back(message.getDecodedValue<double>(signal.name));
+                    }
+
+                    if (&signal == &messageDescription.signals.front() && !time.empty()) ImPlot::SetupAxesLimits(time.front(), time.back(), -10, 30, ImGuiCond_Always);
+                    ImPlot::PlotLine(signal.name.c_str(), time.data(), data.data(), data.size());
                 }
+
                 ImPlot::EndPlot();
             }
         }

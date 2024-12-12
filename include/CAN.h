@@ -120,6 +120,20 @@ public:
         return std::vector<Message>(messages.begin(), messages.end());
     }
 
+    // Get stored messages by type
+    std::vector<Message> getMessagesByType(int id) {
+        std::lock_guard<std::mutex> lock(bufferMutex);
+        std::vector<Message> filteredMessages;
+
+        for (const auto& message : messages) {
+            if (message.id == id) {
+                filteredMessages.push_back(message);
+            }
+        }
+
+    return filteredMessages;
+}
+
     // Clear all messages
     void clear() {
         std::lock_guard<std::mutex> lock(bufferMutex);
