@@ -218,9 +218,10 @@ void Window::createMonitorTab() {
         ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
         // for (CAN::Message& message : messageBuffer.getMessages()) {
-        const std::vector<CAN::Message>& messages = messageBuffer.getMessages();
-        for (auto rit = messages.rbegin(); rit != messages.rend(); rit++) {
-            const CAN::Message& message = *rit;
+        // const std::vector<CAN::Message>& messages = messageBuffer.getMessages();
+        // for (auto rit = messages.rbegin(); rit != messages.rend(); rit++) {
+        for (const CAN::Message& message : messageBuffer) {
+            // const CAN::Message& message = *rit;
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::Text("%lu", message.timestamp);

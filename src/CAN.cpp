@@ -63,3 +63,41 @@ std::any CAN::Message::extractSignal(const SignalDescription& sigDes) {
     }
     return result; // Treat as float
 }
+
+CAN::MessageBuffer::MessageBuffer(size_t maxSize) : maxSize(maxSize) {
+
+}
+
+void CAN::MessageBuffer::pop_front() {
+        messageMap[messages.front().id].pop_front();
+        messages.pop_front();
+}
+
+void CAN::MessageBuffer::addMessage(const Message& message) {
+    if (messages.size() == maxSize) pop_front();
+
+    messages.push_back(message);
+    messageMap[message.id].push_back(&messages.back());
+}
+
+void CAN::MessageBuffer::setMaxSize(size_t maxSize) {
+    while (messages.size() > maxSize) pop_front();
+
+    this->maxSize = maxSize;
+}
+
+std::deque<CAN::Message>::iterator CAN::MessageBuffer::begin() {
+    return messages.begin();
+}
+
+std::deque<CAN::Message>::iterator CAN::MessageBuffer::end() {
+    return messages.end();
+}
+
+std::deque<CAN::Message>::const_iterator CAN::MessageBuffer::begin() const {
+    return messages.cbegin();
+}
+
+std::deque<CAN::Message>::const_iterator CAN::MessageBuffer::end() const {
+    return messages.cend();
+}

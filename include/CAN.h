@@ -76,67 +76,19 @@ private:
 class CAN::MessageBuffer {
 private:
     std::deque<Message> messages;
-    size_t currentSize = 0; // Current size in bytes
-    size_t maxSize;         // Maximum allowed size in bytes
-    std::mutex bufferMutex; // To protect the buffer in multi-threaded environments
+    std::unordered_map<int, std::deque<Message*>> messageMap;
+    size_t maxSize;
 
-    // Helper to calculate the size of a single message
-    size_t calculateMessageSize(const Message& message) const {
-        return sizeof(message.id) + message.rawData.size();
-    }
-
-    // Enforce max size by removing oldest messages
-    void enforceMaxSize() {
-        while (currentSize > maxSize && !messages.empty()) {
-            const auto& oldest = messages.front();
-            currentSize -= calculateMessageSize(oldest);
-            messages.pop_front();
-        }
-    }
+    void pop_front();
 
 public:
-    // Constructor
-    explicit MessageBuffer(size_t maxSizeInBytes)
-        : maxSize(maxSizeInBytes) {}
+    MessageBuffer(size_t maxSize);
 
-    // Add a new message
-    void addMessage(const Message& message) {
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        size_t messageSize = calculateMessageSize(message);
-        
-        if (messageSize > maxSize) {
-            throw std::runtime_error("Message size exceeds buffer's maximum size.");
-        }
+    void addMessage(const Message& message);
+    void setMaxSize(size_t maxSize);
 
-        messages.push_back(message);
-        currentSize += messageSize;
-
-        enforceMaxSize();
-    }
-
-    // Get all stored messages
-    std::vector<Message> getMessages() {
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        return std::vector<Message>(messages.begin(), messages.end());
-    }
-
-    // Clear all messages
-    void clear() {
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        messages.clear();
-        currentSize = 0;
-    }
-
-    // Set a new max size
-    void setMaxSize(size_t newMaxSize) {
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        maxSize = newMaxSize;
-        enforceMaxSize();
-    }
-
-    // Get the current size in bytes
-    size_t getCurrentSize() {
-        std::lock_guard<std::mutex> lock(bufferMutex);
-        return currentSize;
-    }
+    std::deque<CAN::Message>::iterator begin();
+    std::deque<CAN::Message>::iterator end();
+    std::deque<CAN::Message>::const_iterator begin() const;
+    std::deque<CAN::Message>::const_iterator end() const;
 };
