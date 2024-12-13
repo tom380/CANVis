@@ -322,14 +322,14 @@ void Window::createGraphTab() {
                 //     ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
                 //     ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());
                 // }
-                std::vector<CAN::Message> messages = messageBuffer.getMessagesByType(messageDescription.id);
+                // std::vector<CAN::Message> messages = messageBuffer.getMessagesByType(messageDescription.id);
                 for (CAN::SignalDescription& signal : messageDescription.signals) {
                     std::vector<float> time;
                     std::vector<float> data;
                     
-                    for (CAN::Message& message : messages) {
-                        time.push_back(message.timestamp);
-                        data.push_back(message.getDecodedValue<double>(signal.name));
+                    for (CAN::Message* message : messageBuffer.ofID(messageDescription.id)) {
+                        time.push_back(message->timestamp);
+                        data.push_back(message->getDecodedValue<double>(signal.name));
                     }
 
                     if (&signal == &messageDescription.signals.front() && !time.empty()) ImPlot::SetupAxesLimits(time.front(), time.back(), -10, 30, ImGuiCond_Always);

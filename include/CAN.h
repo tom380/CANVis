@@ -82,13 +82,15 @@ private:
     void pop_front();
 
 public:
-    MessageBuffer(size_t maxSize);
+    explicit MessageBuffer(size_t maxSize);
 
     void addMessage(const Message& message);
     void setMaxSize(size_t maxSize);
 
-    std::deque<CAN::Message>::iterator begin();
-    std::deque<CAN::Message>::iterator end();
-    std::deque<CAN::Message>::const_iterator begin() const;
-    std::deque<CAN::Message>::const_iterator end() const;
+    const std::deque<Message*>& ofID(int id) const;
+
+    std::deque<Message>::iterator begin();
+    std::deque<Message>::iterator end();
+    std::deque<Message>::const_iterator begin() const;
+    std::deque<Message>::const_iterator end() const;
 };

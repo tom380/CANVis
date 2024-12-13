@@ -86,6 +86,12 @@ void CAN::MessageBuffer::setMaxSize(size_t maxSize) {
     this->maxSize = maxSize;
 }
 
+const std::deque<CAN::Message*>& CAN::MessageBuffer::ofID(int id) const {
+    static const std::deque<Message*> emptyQueue;
+    auto it = messageMap.find(id);
+    return it != messageMap.end() ? it->second : emptyQueue;
+}
+
 std::deque<CAN::Message>::iterator CAN::MessageBuffer::begin() {
     return messages.begin();
 }
