@@ -294,13 +294,6 @@ void Window::createGraphTab() {
             ImGui::Text("%s", (int_to_hex(message.id, 2) + " " + message.name).c_str());
         }
 
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        ImGui::Text("dt:");
-        ImGui::TableSetColumnIndex(1);
-        ImGui::Text("%i", dtGraph);
-
-
         ImGui::EndTable();
     }
 
