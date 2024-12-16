@@ -11,6 +11,7 @@
 #include "globals.h"
 #include <sstream>
 #include <iomanip>
+#include <chrono>
 
 Window::Window(int width, int height, const char* title) : width(width), height(height) {
     // Initialize GLFW
@@ -271,7 +272,8 @@ void Window::createMonitorTab() {
 void Window::createGraphTab() {
     ImGui::Columns(2, "Columns");
     ImGui::SetColumnWidth(0, 200);
-
+    static int dtGraph = 0;
+    static size_t dtCount = 0;
     // ImGui::BeginTable("CheckboxTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)
     if (ImGui::BeginTable("CheckboxTable", 2)) {
         ImGui::TableSetupColumn("Checkbox", ImGuiTableColumnFlags_WidthFixed, 20);
@@ -292,6 +294,13 @@ void Window::createGraphTab() {
             ImGui::Text("%s", (int_to_hex(message.id, 2) + " " + message.name).c_str());
         }
 
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("dt:");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text("%i", dtGraph);
+
+
         ImGui::EndTable();
     }
 
@@ -301,39 +310,20 @@ void Window::createGraphTab() {
     for (auto& pair : messageDescriptions) {
         CAN::MessageDescription& messageDescription = pair.second;
         if (messageDescription.plot) {
-            float max = 0;
-            float min = 0;
-            for (float dataPoint : xData) {
-                if (dataPoint > max) max = dataPoint;
-                if (dataPoint < min) min = dataPoint;
-            }
-            for (float dataPoint : yData) {
-                if (dataPoint > max) max = dataPoint;
-                if (dataPoint < min) min = dataPoint;
-            }
-            for (float dataPoint : zData) {
-                if (dataPoint > max) max = dataPoint;
-                if (dataPoint < min) min = dataPoint;
-            }
             if (ImPlot::BeginPlot((int_to_hex(messageDescription.id, 2) + " " + messageDescription.name).c_str())) {
-                // if (!tData.empty()) {
-                //     ImPlot::SetupAxesLimits(tData.front(), tData.back(), min - std::abs(min) * 0.1, max + max *0.1, ImGuiCond_Always);
-                //     ImPlot::PlotLine("Acc X", tData.data(), xData.data(), tData.size());
-                //     ImPlot::PlotLine("Acc Y", tData.data(), yData.data(), tData.size());
-                //     ImPlot::PlotLine("Acc Z", tData.data(), zData.data(), tData.size());
-                // }
-                // std::vector<CAN::Message> messages = messageBuffer.getMessagesByType(messageDescription.id);
-                for (CAN::SignalDescription& signal : messageDescription.signals) {
-                    std::vector<float> time;
-                    std::vector<float> data;
-                    
-                    for (CAN::Message* message : messageBuffer.ofID(messageDescription.id)) {
-                        time.push_back(message->timestamp);
-                        data.push_back(message->getDecodedValue<double>(signal.name));
-                    }
+                ImPlot::SetupAxes("Time (ms)", "", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_None);
 
-                    if (&signal == &messageDescription.signals.front() && !time.empty()) ImPlot::SetupAxesLimits(time.front(), time.back(), -10, 30, ImGuiCond_Always);
-                    ImPlot::PlotLine(signal.name.c_str(), time.data(), data.data(), data.size());
+                for (CAN::SignalDescription& signal : messageDescription.signals) {
+                    auto dataGetter = [](int idx, void* data) -> ImPlotPoint {
+                        auto* info = static_cast<std::pair<std::string, const std::deque<CAN::Message*>*>*>(data);
+                        const CAN::Message* msg = (*info->second)[idx];
+                        messageBuffer.begin();
+                        return ImPlotPoint(msg->timestamp, msg->getDecodedValue<double>(info->first));
+                    };
+
+                    const std::deque<CAN::Message*>& data = messageBuffer.ofID(messageDescription.id);
+                    std::pair<std::string, const std::deque<CAN::Message*>*> info = {signal.name, &data};
+                    ImPlot::PlotLineG(signal.name.c_str(), dataGetter, &info, static_cast<int>(data.size()));
                 }
 
                 ImPlot::EndPlot();

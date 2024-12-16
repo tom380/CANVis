@@ -34,35 +34,6 @@ int main() {
             while (CanalDataAvailable(handle)) {
                 CanalReceive(handle, &msg);
                 if (!isPaused) messageBuffer.addMessage(msg);
-                if (messageDescriptions.find(msg.id) != messageDescriptions.end()) {
-                    // const CAN::Message& message = messageBuffer.getMessages().back();
-
-                    // CAN::MessageDescription& description = messageDescriptions.find(msg.id)->second;
-                    // if (description.plot) {
-                    //     for (auto& pair : message.decodedData) {
-
-                    //     }
-                    // }
-                    
-                }
-
-                if (msg.id == 0x34) {
-                    float accx = int16_t((msg.data[1] << 8) | msg.data[0]) / (float)256;
-                    float accy = int16_t((msg.data[3] << 8) | msg.data[2]) / (float)256;
-                    float accz = int16_t((msg.data[5] << 8) | msg.data[4]) / (float)256;
-
-                    if (tData.size() >= 500) {
-                        tData.erase(tData.begin());
-                        xData.erase(xData.begin());
-                        yData.erase(yData.begin());
-                        zData.erase(zData.begin());
-                    }
-                    
-                    tData.push_back(tData.size() == 0 ? 0 : tData.back() + 1);
-                    xData.push_back(accx);
-                    yData.push_back(accy);
-                    zData.push_back(accz);
-                }
             }
         }
 

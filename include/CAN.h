@@ -10,6 +10,8 @@
 #include <any>
 #include <unordered_map>
 
+#include "implot.h"
+
 #define BIG_ENDIAN 0
 #define LITTLE_ENDIAN 1
 #define UNSIGNED 0
@@ -88,6 +90,7 @@ public:
     void setMaxSize(size_t maxSize);
 
     const std::deque<Message*>& ofID(int id) const;
+    // ImPlotPoint getter<int>(int idx, void* label);
 
     std::deque<Message>::iterator begin();
     std::deque<Message>::iterator end();
