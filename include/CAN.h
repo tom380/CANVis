@@ -9,6 +9,7 @@
 #include "usb2can.h"
 #include <any>
 #include <unordered_map>
+#include <map>
 
 #include "implot.h"
 
@@ -23,12 +24,14 @@ namespace CAN {
 
     struct Message;
     class MessageBuffer;
+
+    void parseDBC(const std::string& filename, std::map<int, CAN::MessageDescription>& dbc);
 }
 
 struct CAN::SignalDescription {
     std::string name;
     int startBit;
-    int length;
+    size_t length;
     bool endianess;
     bool signedness;
     float scale;
@@ -41,7 +44,7 @@ struct CAN::SignalDescription {
 struct CAN::MessageDescription {
     int id;
     std::string name;
-    int length;
+    size_t length;
     std::string sender;
     std::vector<SignalDescription> signals;
 

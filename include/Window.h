@@ -1,6 +1,7 @@
 #pragma once
 
 #include <GLFW/glfw3.h>
+#include <string>
 
 class Window {
 private:
@@ -12,6 +13,8 @@ private:
     void createDatabaseTab();
     void createMonitorTab();
     void createGraphTab();
+
+    std::string openFileDialog();
 
 public:
     Window(int width, int height, const char* title);

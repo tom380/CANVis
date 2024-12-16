@@ -2,6 +2,10 @@
 
 #include "globals.h"
 
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
 CAN::Message::Message(const CANALMSG& canalMessage) : flags(canalMessage.flags),
                                                       obid(canalMessage.obid),
                                                       id(canalMessage.id),
@@ -106,4 +110,68 @@ std::deque<CAN::Message>::const_iterator CAN::MessageBuffer::begin() const {
 
 std::deque<CAN::Message>::const_iterator CAN::MessageBuffer::end() const {
     return messages.cend();
+}
+
+void CAN::parseDBC(const std::string& filename, std::map<int, CAN::MessageDescription>& dbc) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    std::string line;
+    int lastMsgID = -1;
+    while (std::getline(file, line)) {
+        std::istringstream stream(line);
+        std::string token;
+        stream >> token;
+
+        if (token == "BU_:") {
+            // Node
+        } else if (token == "BO_") {
+            // Message
+            CAN::MessageDescription msg;
+            stream >> msg.id >> msg.name;
+            msg.name.pop_back(); // Remove trailing ':'
+            stream >> msg.length >> msg.sender;
+            dbc[msg.id] = msg;
+            lastMsgID = msg.id;
+        } else if (token == "SG_") {
+            // Parse Signal
+            CAN::SignalDescription signal;
+            CAN::MessageDescription& msg = dbc[lastMsgID]; // Last added message
+
+            std::string colon;
+            stream >> signal.name >> colon;
+            
+            std::string bitInfo, scalingInfo, rangeInfo, unit, receiver;
+            stream >> bitInfo >> scalingInfo >> rangeInfo >> unit >> receiver;
+
+            // Parse bit start and length (e.g., "0|16@1+")
+            size_t pipePos = bitInfo.find('|');
+            size_t atPos = bitInfo.find('@');
+            signal.startBit = std::stoi(bitInfo.substr(0, pipePos));
+            signal.length = std::stoi(bitInfo.substr(pipePos + 1, atPos - pipePos - 1));
+            signal.endianess = bitInfo[atPos + 1] == '1';
+            signal.signedness = bitInfo[atPos + 2] == '-';
+
+            // Parse scaling and offset (e.g., "(0.1,0)")
+            size_t commaPos = scalingInfo.find(',');
+            signal.scale = std::stof(scalingInfo.substr(1, commaPos - 1)); // Remove '('
+            signal.offset = std::stof(scalingInfo.substr(commaPos + 1, scalingInfo.size() - commaPos - 2)); // Remove ')'
+
+            // Parse range (e.g., "[0|10000]")
+            size_t bracketPos = rangeInfo.find('|');
+            signal.min = std::stof(rangeInfo.substr(1, bracketPos - 1)); // Remove '['
+            signal.max = std::stof(rangeInfo.substr(bracketPos + 1, rangeInfo.size() - bracketPos - 2)); // Remove ']'
+
+            // Parse unit and receiver
+            signal.unit = unit.substr(1, unit.size() - 2); // Remove quotes
+            // signal.receiver = receiver;
+
+            msg.signals.push_back(signal);
+        }
+    }
+
+    file.close();
 }

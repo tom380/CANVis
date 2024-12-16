@@ -12,6 +12,11 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#undef UNICODE
+#include <windows.h>
+#include <commdlg.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 Window::Window(int width, int height, const char* title) : width(width), height(height) {
     // Initialize GLFW
@@ -171,6 +176,12 @@ static std::string int_to_hex( T i , const int digits, bool add0x = true)
 }
 
 void Window::createDatabaseTab() {
+    static std::string dbcFile = "-";
+    if (ImGui::Button("Load DBC")) {
+        dbcFile = openFileDialog();
+        if (!dbcFile.empty()) CAN::parseDBC(dbcFile, messageDescriptions);
+    }
+
     if (ImGui::BeginTable("Database", 5, ImGuiTableFlags_RowBg)) // Start a table with 3 columns
         {
             // Set up columns
@@ -189,7 +200,7 @@ void Window::createDatabaseTab() {
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s", message.name.c_str());
                 ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%i", message.length);
+                ImGui::Text("%zu", message.length);
                 ImGui::TableSetColumnIndex(3);
                 ImGui::Text("%s", message.sender.c_str());
                 ImGui::TableSetColumnIndex(4);
@@ -327,4 +338,24 @@ void Window::createGraphTab() {
     ImGui::Columns();
 
     ImGui::EndTabItem();
+}
+
+std::string Window::openFileDialog() {
+    char filename[100] = "";
+
+    HWND hwnd = glfwGetWin32Window(pWindow);
+
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = "All Files\0*.*\0Text Files\0*.TXT\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameA(&ofn)) {
+        return std::string(filename);
+    }
+    return ""; // Return an empty string if canceled
 }
