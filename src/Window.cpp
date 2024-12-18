@@ -179,8 +179,10 @@ void Window::createDatabaseTab() {
     ImGui::Text("ID:");
     ImGui::SameLine(117);
     ImGui::Text("Name:");
-    ImGui::SameLine(325);
+    ImGui::SameLine(275);
     ImGui::Text("Length:");
+    ImGui::SameLine(383);
+    ImGui::Text("Sender:");
 
     ImGui::SetNextItemWidth(100);
     static int messageID = 0;
@@ -188,13 +190,17 @@ void Window::createDatabaseTab() {
     const int stepFast = 100;
     ImGui::InputScalar("##messageID", ImGuiDataType_U32, (void*)&messageID, (void*)&step, (void*)&stepFast, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(200);
+    ImGui::SetNextItemWidth(150);
     static char messageName[128] = "";
     ImGui::InputText("##messageName", messageName, IM_ARRAYSIZE(messageName));
     ImGui::SameLine();
     ImGui::SetNextItemWidth(100);
     static int messageLength = 0;
     ImGui::InputScalar("##messageLength", ImGuiDataType_U32, (void*)&messageLength, (void*)&step, (void*)&stepFast);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(150);
+    static char messageSender[128] = "";
+    ImGui::InputText("##messageSender", messageSender, IM_ARRAYSIZE(messageSender));
     ImGui::SameLine();
 
     static CAN::MessageDescription* selectedDescription = nullptr;
@@ -203,6 +209,7 @@ void Window::createDatabaseTab() {
         messageID = 0;
         strcpy_s(messageName, "");
         messageLength = 0;
+        strcpy_s(messageSender, "");
     }
 
     if (ImGui::Button("Save")) {
@@ -218,6 +225,7 @@ void Window::createDatabaseTab() {
         messageDescription.id = messageID;
         messageDescription.name = messageName;
         messageDescription.length = messageLength;
+        messageDescription.sender = messageSender;
 
         messageDescriptions[messageID] = messageDescription;
         selectedDescription = &messageDescriptions[messageID];
@@ -244,9 +252,9 @@ void Window::createDatabaseTab() {
         {
             // Set up columns
             ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 200);
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150);
             ImGui::TableSetupColumn("Length", ImGuiTableColumnFlags_WidthFixed, 50);
-            ImGui::TableSetupColumn("Sender", ImGuiTableColumnFlags_WidthFixed, 200);
+            ImGui::TableSetupColumn("Sender", ImGuiTableColumnFlags_WidthFixed, 150);
             ImGui::TableSetupColumn("Signals");
             ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
@@ -262,6 +270,7 @@ void Window::createDatabaseTab() {
                     messageID = message.id;
                     strcpy_s(messageName, message.name.c_str());
                     messageLength = message.length;
+                    strcpy_s(messageSender, message.sender.c_str());
 
                 }
                 ImGui::TableSetColumnIndex(1);
