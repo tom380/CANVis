@@ -416,7 +416,7 @@ std::string Window::openFileDialog() {
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwnd;
-    ofn.lpstrFilter = "All Files\0*.*\0Text Files\0*.TXT\0";
+    ofn.lpstrFilter = "DBC Files\0*.dbc\0";
     ofn.lpstrFile = filename;
     ofn.nMaxFile = MAX_PATH;
     ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
