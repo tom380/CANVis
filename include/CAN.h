@@ -42,7 +42,7 @@ struct CAN::SignalDescription {
 };
 
 struct CAN::MessageDescription {
-    int id;
+    unsigned long id;
     std::string name;
     size_t length;
     std::string sender;
