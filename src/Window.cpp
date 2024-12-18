@@ -176,8 +176,66 @@ static std::string int_to_hex( T i , const int digits, bool add0x = true)
 }
 
 void Window::createDatabaseTab() {
-    static std::string dbcFile = "-";
-    if (ImGui::Button("Load DBC")) {
+    ImGui::Text("ID:");
+    ImGui::SameLine(117);
+    ImGui::Text("Name:");
+    ImGui::SameLine(325);
+    ImGui::Text("Length:");
+
+    ImGui::SetNextItemWidth(100);
+    static int messageID = 0;
+    const int step = 1;
+    const int stepFast = 100;
+    ImGui::InputScalar("##messageID", ImGuiDataType_U32, (void*)&messageID, (void*)&step, (void*)&stepFast, "%02X", ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(200);
+    static char messageName[128] = "";
+    ImGui::InputText("##messageName", messageName, IM_ARRAYSIZE(messageName));
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100);
+    static int messageLength = 0;
+    ImGui::InputScalar("##messageLength", ImGuiDataType_U32, (void*)&messageLength, (void*)&step, (void*)&stepFast);
+    ImGui::SameLine();
+
+    static CAN::MessageDescription* selectedDescription = nullptr;
+    if ((ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered()) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        selectedDescription = nullptr;
+        messageID = 0;
+        strcpy_s(messageName, "");
+        messageLength = 0;
+    }
+
+    if (ImGui::Button("Save")) {
+        CAN::MessageDescription messageDescription;
+        if (selectedDescription) {
+            messageDescription = *selectedDescription;
+
+            if (messageID != selectedDescription->id) {
+                messageDescriptions.erase(selectedDescription->id);
+            }
+        }
+
+        messageDescription.id = messageID;
+        messageDescription.name = messageName;
+        messageDescription.length = messageLength;
+
+        messageDescriptions[messageID] = messageDescription;
+        selectedDescription = &messageDescriptions[messageID];
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Delete")) {
+        if (selectedDescription) {
+            messageDescriptions.erase(selectedDescription->id);
+            selectedDescription = nullptr;
+        }
+    }
+
+    std::string buttonText = "Import";
+    ImVec2 textSize = ImGui::CalcTextSize(buttonText.c_str());
+    float availableWidth = ImGui::GetContentRegionAvail().x;
+    ImGui::SameLine(availableWidth - textSize.x);
+    static std::string dbcFile = "";
+    if (ImGui::Button(buttonText.c_str())) {
         dbcFile = openFileDialog();
         if (!dbcFile.empty()) CAN::parseDBC(dbcFile, messageDescriptions);
     }
@@ -197,6 +255,15 @@ void Window::createDatabaseTab() {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
+                ImGui::SameLine();
+                if (ImGui::Selectable(("##" + std::to_string(message.id)).c_str(), selectedDescription == &message, ImGuiSelectableFlags_SpanAllColumns)) {
+                    selectedDescription = &message;
+
+                    messageID = message.id;
+                    strcpy_s(messageName, message.name.c_str());
+                    messageLength = message.length;
+
+                }
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s", message.name.c_str());
                 ImGui::TableSetColumnIndex(2);
