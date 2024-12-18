@@ -110,8 +110,8 @@ void Window::createImGui() {
     ImGui::SameLine();
 
     // Get the button size
-    float buttonWidth = ImGui::CalcTextSize(isPaused ? "Record" : "Stop").x + ImGui::GetStyle().FramePadding.x * 2.0f;
-    float rightAlignPadding = 10.0f;
+    float buttonWidth = ImGui::CalcTextSize(isPaused ? "Record" : "Stop").x;
+    float rightAlignPadding = 8.0f;
 
     // Align the button to the right
     ImGui::SetCursorPos(ImVec2(ImGui::GetWindowContentRegionMax().x - buttonWidth - rightAlignPadding, tabBarY));
