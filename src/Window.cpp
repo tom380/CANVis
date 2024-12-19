@@ -361,7 +361,10 @@ void Window::createGraphTab() {
     ImGui::SetColumnWidth(0, 200);
     static int dtGraph = 0;
     static size_t dtCount = 0;
-    // ImGui::BeginTable("CheckboxTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)
+    
+    static char search[128] = "";
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+    ImGui::InputTextWithHint("##searchBar", "Search", search, IM_ARRAYSIZE(search));
     if (ImGui::BeginTable("CheckboxTable", 2)) {
         ImGui::TableSetupColumn("Checkbox", ImGuiTableColumnFlags_WidthFixed, 20);
         ImGui::TableSetupColumn("Text", ImGuiTableColumnFlags_WidthFixed, 200);
@@ -370,6 +373,8 @@ void Window::createGraphTab() {
 
         for (auto& pair : messageDescriptions) {
             CAN::MessageDescription& message = pair.second;
+            std::string label = int_to_hex(message.id, 2) + " " + message.name;
+            if (label.find(search) == std::string::npos) continue;
             ImGui::TableNextRow();
             
             // Checkbox Column
@@ -378,7 +383,7 @@ void Window::createGraphTab() {
 
             // Text Column
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text("%s", (int_to_hex(message.id, 2) + " " + message.name).c_str());
+            ImGui::Text("%s", label.c_str());
         }
 
         ImGui::EndTable();
