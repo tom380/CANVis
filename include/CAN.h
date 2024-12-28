@@ -10,6 +10,7 @@
 #include <any>
 #include <unordered_map>
 #include <map>
+#include <variant>
 
 #include "implot.h"
 
@@ -22,6 +23,7 @@ namespace CAN {
     struct SignalDescription;
     struct MessageDescription;
 
+    using Signal = std::variant<bool, int, unsigned int, double>;
     struct Message;
     class MessageBuffer;
 
@@ -57,25 +59,36 @@ struct CAN::Message {
     unsigned long id;
     unsigned char sizeData;
     std::vector<uint8_t> rawData;
-    std::unordered_map<std::string, std::any> decodedData;
+    std::unordered_map<std::string, Signal> decodedData;
     unsigned long timestamp;
 
     Message(const CANALMSG& canalMessage);
 
     
     void decode();
+    Signal getSignal(const std::string& name) const;
 
     template <typename T>
-    T getDecodedValue(const std::string& name) const {
-        auto it = decodedData.find(name);
-        if (it == decodedData.end()) {
-            throw std::runtime_error("Variable not found: " + name);
-        }
-        return std::any_cast<T>(it->second);
+    T getSignalValue(const std::string& name) const {
+        Signal signal = getSignal(name);
+
+        return std::visit(
+            [](const auto& value) -> T {
+                if constexpr (std::is_same_v<T, std::decay_t<decltype(value)>>) {
+                    // Direct match of types
+                    return value;
+                } else if constexpr (std::is_convertible_v<std::decay_t<decltype(value)>, T>) {
+                    // Convertible types
+                    return static_cast<T>(value);
+                } else {
+                    throw std::runtime_error("Signal value cannot be converted to the requested type");
+                }
+            },
+            signal);
     }
     
 private:
-    std::any extractSignal(const SignalDescription& signalDescription);
+    Signal extractSignal(const SignalDescription& signalDescription);
 };
 
 class CAN::MessageBuffer {

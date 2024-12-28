@@ -31,7 +31,7 @@ void CAN::Message::decode() {
     }
 }
 
-std::any CAN::Message::extractSignal(const SignalDescription& sigDes) {
+CAN::Signal CAN::Message::extractSignal(const SignalDescription& sigDes) {
     int byteStart = sigDes.startBit / 8;
     int bitStart = 7 - (sigDes.startBit % 8);
     int bitEnd = (sigDes.startBit + sigDes.length - 1) % 8;
@@ -53,7 +53,7 @@ std::any CAN::Message::extractSignal(const SignalDescription& sigDes) {
     value &= (1ULL << sigDes.length) - 1;
 
     // Handle signedness
-    int64_t signedValue = static_cast<int64_t>(value);
+    int signedValue = static_cast<int>(value);
     if (sigDes.signedness && (value & (1ULL << (sigDes.length - 1)))) {
         signedValue -= (1ULL << sigDes.length);
     }
@@ -66,6 +66,14 @@ std::any CAN::Message::extractSignal(const SignalDescription& sigDes) {
         return signedValue; // Treat as integer
     }
     return result; // Treat as float
+}
+
+CAN::Signal CAN::Message::getSignal(const std::string& name) const {
+    auto it = decodedData.find(name);
+    if (it == decodedData.end()) {
+        throw std::runtime_error("Variable not found: " + name);
+    }
+    return it->second;
 }
 
 CAN::MessageBuffer::MessageBuffer(size_t maxSize) : maxSize(maxSize) {

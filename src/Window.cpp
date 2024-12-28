@@ -340,7 +340,7 @@ void Window::createMonitorTab() {
                     std::string signals = "";
                     CAN::MessageDescription& description = it->second;
                     for (CAN::SignalDescription& signal : description.signals) {
-                        signals += signal.name + ": " + std::to_string(message.getDecodedValue<double>(signal.name)) + " " + signal.unit;
+                        signals += signal.name + ": " + std::to_string(message.getSignalValue<double>(signal.name)) + " " + signal.unit;
                         if (&signal != &description.signals.back()) signals += "\t";
                     }
                     
@@ -403,7 +403,7 @@ void Window::createGraphTab() {
                         auto* info = static_cast<std::pair<std::string, const std::deque<CAN::Message*>*>*>(data);
                         const CAN::Message* msg = (*info->second)[idx];
                         messageBuffer.begin();
-                        return ImPlotPoint(msg->timestamp, msg->getDecodedValue<double>(info->first));
+                        return ImPlotPoint(msg->timestamp, msg->getSignalValue<double>(info->first));
                     };
 
                     const std::deque<CAN::Message*>& data = messageBuffer.ofID(messageDescription.id);
