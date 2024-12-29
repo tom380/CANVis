@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "imgui.h"
+#include "imgui_stdlib.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "implot.h"
@@ -248,49 +249,119 @@ void Window::createDatabaseTab() {
         if (!dbcFile.empty()) CAN::parseDBC(dbcFile, messageDescriptions);
     }
 
-    if (ImGui::BeginTable("Database", 5, ImGuiTableFlags_RowBg)) // Start a table with 3 columns
-        {
-            // Set up columns
-            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150);
-            ImGui::TableSetupColumn("Length", ImGuiTableColumnFlags_WidthFixed, 50);
-            ImGui::TableSetupColumn("Sender", ImGuiTableColumnFlags_WidthFixed, 150);
-            ImGui::TableSetupColumn("Signals");
-            ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
-            for (auto& pair : messageDescriptions) {
-                CAN::MessageDescription& message = pair.second;
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
-                ImGui::SameLine();
-                if (ImGui::Selectable(("##" + std::to_string(message.id)).c_str(), selectedDescription == &message, ImGuiSelectableFlags_SpanAllColumns)) {
-                    selectedDescription = &message;
+    ImGui::Columns(2, "Columns");
+    ImGui::SetColumnWidth(0, 445);
+    if (ImGui::BeginTable("Database", 4, ImGuiTableFlags_RowBg)) {
+        // Set up columns
+        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150);
+        ImGui::TableSetupColumn("Length", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Sender", ImGuiTableColumnFlags_WidthFixed, 150);
+        // ImGui::TableSetupColumn("Signals");
+        ImGui::TableHeadersRow(); // Optional: Adds a header row with column names
 
-                    messageID = message.id;
-                    strcpy_s(messageName, message.name.c_str());
-                    messageLength = message.length;
-                    strcpy_s(messageSender, message.sender.c_str());
+        for (auto& pair : messageDescriptions) {
+            CAN::MessageDescription& message = pair.second;
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s", int_to_hex(message.id, 2).c_str());
+            ImGui::SameLine();
+            if (ImGui::Selectable(("##" + std::to_string(message.id)).c_str(), selectedDescription == &message, ImGuiSelectableFlags_SpanAllColumns)) {
+                selectedDescription = &message;
 
-                }
-                ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%s", message.name.c_str());
-                ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%zu", message.length);
-                ImGui::TableSetColumnIndex(3);
-                ImGui::Text("%s", message.sender.c_str());
-                ImGui::TableSetColumnIndex(4);
-                std::string signals = "";
-                for (CAN::SignalDescription& signal : message.signals) {
-                    signals += signal.name + " (" + signal.unit + ")";
-                    if (&signal != &message.signals.back()) signals += ", ";
-                }
-                ImGui::Text("%s", signals.c_str());
+                messageID = message.id;
+                strcpy_s(messageName, message.name.c_str());
+                messageLength = message.length;
+                strcpy_s(messageSender, message.sender.c_str());
+
             }
-
-            ImGui::EndTable(); // End the table
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%s", message.name.c_str());
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%zu", message.length);
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text("%s", message.sender.c_str());
+            // ImGui::TableSetColumnIndex(4);
+            // std::string signals = "";
+            // for (CAN::SignalDescription& signal : message.signals) {
+            //     signals += signal.name + " (" + signal.unit + ")";
+            //     if (&signal != &message.signals.back()) signals += ", ";
+            // }
+            // ImGui::Text("%s", signals.c_str());
         }
 
+        ImGui::EndTable(); // End the table
+    }
+
+    ImGui::NextColumn();
+    if (ImGui::BeginTable("Signals", 10, ImGuiTableFlags_RowBg)) {
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 150);
+        ImGui::TableSetupColumn("Start Bit", ImGuiTableColumnFlags_WidthFixed, 100);
+        ImGui::TableSetupColumn("Length", ImGuiTableColumnFlags_WidthFixed, 100);
+        ImGui::TableSetupColumn("Endianess", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Signedness", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Scale", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Offset", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Min", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Max", ImGuiTableColumnFlags_WidthFixed, 50);
+        ImGui::TableSetupColumn("Unit", ImGuiTableColumnFlags_WidthFixed, 150);
+        ImGui::TableHeadersRow();
+
+        if (selectedDescription) {
+            float columnWidth;
+            // ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0, 0, 0, 0)); // Transparent background
+            // ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0, 0, 0, 0)); // Transparent when hovered
+            for (CAN::SignalDescription& signal : selectedDescription->signals) {
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                columnWidth = ImGui::GetColumnWidth();
+                ImGui::SetNextItemWidth(columnWidth);
+                ImGui::InputText(("##signalName" + std::to_string((size_t)&signal)).c_str(), &signal.name);
+
+                ImGui::TableSetColumnIndex(1);
+                columnWidth = ImGui::GetColumnWidth();
+                ImGui::SetNextItemWidth(100);
+                ImGui::InputScalar(("##startBit" + std::to_string((size_t)&signal)).c_str(), ImGuiDataType_U8, (void*)&signal.startBit, (void*)&step, (void*)&stepFast);
+
+                ImGui::TableSetColumnIndex(2);
+                columnWidth = ImGui::GetColumnWidth();
+                ImGui::SetNextItemWidth(100);
+                ImGui::InputScalar(("##length" + std::to_string((size_t)&signal)).c_str(), ImGuiDataType_U8, (void*)&signal.length, (void*)&step, (void*)&stepFast);
+                // int min = 0;
+                // int max = 64;
+                // ImGui::DragScalar(("##startBit" + std::to_string((size_t)&signal)).c_str(),
+                //   ImGuiDataType_U8,
+                //   &signal.startBit,
+                //   1.0f,         // Speed
+                //   &min,      // Min value (optional)
+                //   &max,      // Max value (optional)
+                //   "%u");        // Display format
+                // ImGui::Text("%s", int_to_hex(signal.name, 2).c_str());
+                // ImGui::SameLine();
+                // if (ImGui::Selectable(("##" + std::to_string(message.id)).c_str(), selectedDescription == &message, ImGuiSelectableFlags_SpanAllColumns)) {
+                //     selectedDescription = &message;
+
+                //     messageID = message.id;
+                //     strcpy_s(messageName, message.name.c_str());
+                //     messageLength = message.length;
+                //     strcpy_s(messageSender, message.sender.c_str());
+
+                // }
+                // ImGui::TableSetColumnIndex(1);
+                // ImGui::Text("%s", message.name.c_str());
+                // ImGui::TableSetColumnIndex(2);
+                // ImGui::Text("%zu", message.length);
+                // ImGui::TableSetColumnIndex(3);
+                // ImGui::Text("%s", message.sender.c_str());
+            }
+            // ImGui::PopStyleColor(1);
+        }
+
+        ImGui::EndTable();
+    }
+    ImGui::Columns(1);
     ImGui::EndTabItem();
 }
 

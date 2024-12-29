@@ -16,6 +16,7 @@ set(SOURCES
     imgui/imgui_tables.cpp
     imgui/backends/imgui_impl_glfw.cpp
     imgui/backends/imgui_impl_opengl3.cpp
+    imgui/misc/cpp/imgui_stdlib.cpp
     implot/implot.cpp
     implot/implot_items.cpp
 )
@@ -25,6 +26,7 @@ include_directories(
     include
     imgui
     imgui/backends
+    imgui/misc/cpp
     implot
 )
 
