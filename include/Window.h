@@ -11,6 +11,7 @@ private:
     void createImGui();
     void createSettingsTab();
     void createDatabaseTab();
+    void createTransmitTab();
     void createMonitorTab();
     void createGraphTab();
 

@@ -66,6 +66,7 @@ struct CAN::Message {
 
     
     void decode();
+    void encode(int* buffer);
     Signal getSignal(const std::string& name) const;
 
     template <typename T>

@@ -98,6 +98,7 @@ void Window::createImGui() {
     if (ImGui::BeginTabBar("Tabs")) {
         if (ImGui::BeginTabItem("Settings")) createSettingsTab();
         if (ImGui::BeginTabItem("Database")) createDatabaseTab();
+        if (ImGui::BeginTabItem("Transmit")) createTransmitTab();
         if (ImGui::BeginTabItem("Monitor")) createMonitorTab();
         if (ImGui::BeginTabItem("Graph View")) createGraphTab();
 
@@ -162,6 +163,53 @@ void Window::createSettingsTab() {
     ImGui::SameLine();
 
     ImGui::Text("%s", connectInfo.c_str());
+
+    ImGui::EndTabItem();
+}
+
+void Window::createTransmitTab() {
+    static CAN::MessageDescription* selectedMessageDes = nullptr;
+    static std::vector<float> signals;
+
+    ImGui::SetNextItemWidth(150);
+    if (ImGui::BeginCombo("##DropdownMessageType", selectedMessageDes ? selectedMessageDes->name.c_str() : "")) {
+        for (auto& [key, md] : messageDescriptions) {
+            bool is_selected = (&md == selectedMessageDes);
+            if (ImGui::Selectable(md.name.c_str(), is_selected)) {
+                selectedMessageDes = &md;
+                signals.clear();
+                signals.resize(md.signals.size(), 0);
+            }
+
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Send")) {
+        static unsigned long count = 0;
+
+        CANALMSG msg;
+        msg.data;
+        msg.flags = 0;
+        msg.id = selectedMessageDes->id;
+        msg.obid = 0;
+        msg.sizeData = selectedMessageDes->length;
+        msg.timestamp = count++;
+        
+        CanalSend(handle, &msg);
+    }
+
+    if (selectedMessageDes) {
+        // for (CAN::SignalDescription& signalDes : selectedMessageDes->signals) {
+        for (int i = 0; i < selectedMessageDes->signals.size(); i++) {
+            const CAN::SignalDescription& signalDes = selectedMessageDes->signals[i];
+            ImGui::SetNextItemWidth(100);
+            ImGui::InputFloat(signalDes.name.c_str(), &signals[i]);
+        }
+    }
 
     ImGui::EndTabItem();
 }
